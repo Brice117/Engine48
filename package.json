@@ -5,7 +5,8 @@
   "description": "Calcul du volume net des réservoirs (tables de jaugeage, interpolation trim puis sonde). APK compilé par .github/workflows/android.yml.",
   "dependencies": {
     "@capacitor/android": "8.5.2",
-    "@capacitor/core": "8.5.2"
+    "@capacitor/core": "8.5.2",
+    "@capacitor/share": "^8.0.0"
   },
   "devDependencies": {
     "@capacitor/assets": "3.0.5",

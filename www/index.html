@@ -8,81 +8,114 @@
 <style>
   :root {
     --bg: #0d1b26; --card: #15283a; --card2: #1c3449; --line: #2a4660;
-    --text: #e8f1f8; --muted: #8fa9bf; --accent: #3fb6ff; --ok: #4fd18b; --warn: #ffb547;
+    --text: #e8f1f8; --muted: #8fa9bf; --accent: #3fb6ff; --ok: #4fd18b; --warn: #ffb547; --danger: #ff6b6b;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-  body { padding: calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 24px); }
+  body { padding: calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 96px); }
   main { max-width: 560px; margin: 0 auto; }
-  h1 { font-size: 1.25rem; margin: 4px 0 14px; }
-  h1 small { display: block; font-size: .8rem; font-weight: 400; color: var(--muted); margin-top: 2px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
-  label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
-  .row { display: flex; gap: 8px; align-items: center; }
-  input { flex: 1; min-width: 0; font-size: 1.4rem; padding: 10px 12px; border-radius: 10px;
-    border: 1px solid var(--line); background: var(--card2); color: var(--text); outline: none; }
-  input:focus { border-color: var(--accent); }
-  button { font: inherit; border: 1px solid var(--line); background: var(--card2); color: var(--text);
-    border-radius: 10px; padding: 10px 14px; cursor: pointer; }
-  button:active { transform: scale(.97); }
-  .sign { font-size: 1.3rem; width: 52px; padding: 10px 0; }
-  .unit { color: var(--muted); width: 28px; }
-  .trim-presets { display: flex; gap: 6px; margin-top: 8px; }
-  .trim-presets button { flex: 1; padding: 6px 0; font-size: .85rem; color: var(--muted); }
-  .tank-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-  .tank-name { font-weight: 600; }
-  .tank-no { color: var(--accent); margin-right: 6px; }
-  .vol { font-size: 1.6rem; font-weight: 700; color: var(--ok); text-align: right; min-width: 110px; white-space: nowrap; }
-  .vol.empty { color: var(--muted); font-weight: 400; font-size: 1.1rem; }
+  button { font: inherit; color: var(--text); background: var(--card2); border: 1px solid var(--line);
+    border-radius: 12px; cursor: pointer; touch-action: manipulation; }
+  button:active { transform: scale(.96); background: var(--line); }
+  input { font: inherit; color: var(--text); background: var(--card2); border: 1px solid var(--line);
+    border-radius: 12px; outline: none; min-width: 0; }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(63,182,255,.25); }
+
+  header { display: flex; justify-content: space-between; align-items: center; margin: 2px 2px 12px; }
+  h1 { font-size: 1.2rem; margin: 0; }
+  h1 small { display: block; font-size: .75rem; font-weight: 400; color: var(--muted); margin-top: 2px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-bottom: 10px; }
+
+  /* trim */
+  .trim-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .label { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .trim-row { display: flex; gap: 8px; }
+  .step { width: 56px; height: 56px; font-size: 1.6rem; flex: none; }
+  #trim { flex: 1; height: 56px; font-size: 1.6rem; text-align: center; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 14px 0 2px; accent-color: var(--accent); height: 28px; background: none; border: none; box-shadow: none; }
+  .scale { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); padding: 0 4px; }
   .warn { color: var(--warn); font-size: .8rem; margin-top: 6px; }
-  .detail-btn { background: none; border: none; color: var(--accent); padding: 8px 0 0; font-size: .85rem; }
-  .detail { display: none; margin-top: 8px; font-size: .85rem; color: var(--muted); }
-  .detail.open { display: block; }
+  .warn:empty { display: none; }
+
+  /* tanks */
+  .tank { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; }
+  .tank.filled { border-color: #2f5a7a; }
+  .tank-name { font-weight: 600; font-size: 1rem; }
+  .tank-no { display: inline-block; min-width: 34px; padding: 2px 6px; margin-right: 8px; border-radius: 8px;
+    background: rgba(63,182,255,.15); color: var(--accent); text-align: center; font-size: .85rem; }
+  .vol { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .vol b { font-size: 1.6rem; color: var(--ok); }
+  .vol span { color: var(--muted); font-size: .85rem; margin-left: 3px; }
+  .vol.empty b { color: var(--muted); font-weight: 400; }
+  .sound { position: relative; }
+  .sound input { width: 100%; height: 56px; font-size: 1.5rem; padding: 0 44px 0 14px; font-variant-numeric: tabular-nums; }
+  .sound .unit { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  .gauge { width: 56px; height: 56px; border: 2px solid var(--line); border-radius: 10px; position: relative; overflow: hidden; }
+  .gauge i { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(#3fb6ff, #1f7fc0); transition: height .25s; }
+  .gauge em { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; font-size: .8rem;
+    font-weight: 600; text-shadow: 0 1px 2px #000; }
+  .tank .warn, .tank .more, .tank .detail { grid-column: 1 / -1; }
+  .more { justify-self: start; background: none; border: none; color: var(--accent); padding: 2px 0; font-size: .85rem; }
+  .detail { font-size: .85rem; color: var(--muted); }
+  .detail[hidden] { display: none; }
   .detail p { margin: 4px 0; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
-  th, td { padding: 4px 6px; text-align: right; border-bottom: 1px solid var(--line); }
-  th { color: var(--muted); font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+  th { font-weight: 500; }
   tr.hit td { background: rgba(63,182,255,.15); color: var(--text); }
-  .total { position: sticky; bottom: calc(env(safe-area-inset-bottom) + 8px); background: var(--card2);
-    border-color: var(--accent); display: flex; justify-content: space-between; align-items: center; }
-  .total .vol { color: var(--accent); }
-  .actions { display: flex; gap: 8px; }
-  .actions button { flex: 1; }
+
+  /* bottom bar */
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(env(safe-area-inset-bottom) + 10px);
+    background: rgba(13,27,38,.96); border-top: 1px solid var(--line); backdrop-filter: blur(6px); }
+  .bar-in { max-width: 560px; margin: 0 auto; display: flex; gap: 8px; align-items: center; }
+  .total { flex: 1; }
+  .total .label { display: block; }
+  .total b { font-size: 1.7rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .total span { color: var(--muted); font-size: .85rem; margin-left: 3px; }
+  .bar button { height: 52px; padding: 0 14px; }
+  #clear.armed { border-color: var(--danger); color: var(--danger); }
+  #share { background: var(--accent); border-color: var(--accent); color: #062033; font-weight: 600; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 90px); transform: translateX(-50%);
+    background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 20px; font-size: .9rem;
+    opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Tank Sounding<small>Net volume (m³) from sounding and trim</small></h1>
+  <header>
+    <h1>Tank Sounding<small>Net volume (m³) from sounding and trim</small></h1>
+  </header>
 
-  <div class="card">
-    <label for="trim">Trim (m), from −0.5 to +0.5</label>
-    <div class="row">
-      <button class="sign" id="trimSign" type="button">±</button>
-      <input id="trim" inputmode="decimal" autocomplete="off" placeholder="0">
-      <span class="unit">m</span>
+  <section class="card">
+    <div class="trim-top">
+      <span class="label">Trim</span>
+      <span class="label">metres</span>
     </div>
-    <div class="trim-presets">
-      <button type="button" data-trim="-0.5">−0.5</button>
-      <button type="button" data-trim="-0.25">−0.25</button>
-      <button type="button" data-trim="0">0</button>
-      <button type="button" data-trim="0.25">+0.25</button>
-      <button type="button" data-trim="0.5">+0.5</button>
+    <div class="trim-row">
+      <button type="button" class="step" id="trimDown" aria-label="Decrease trim by 0.05">−</button>
+      <input id="trim" inputmode="decimal" enterkeyhint="next" autocomplete="off" placeholder="0.00" aria-label="Trim in metres">
+      <button type="button" class="step" id="trimUp" aria-label="Increase trim by 0.05">+</button>
     </div>
+    <input type="range" id="trimSlider" min="-0.5" max="0.5" step="0.01" value="0" aria-label="Trim slider">
+    <div class="scale"><span>−0.5</span><span>−0.25</span><span>0</span><span>+0.25</span><span>+0.5</span></div>
     <div class="warn" id="trimWarn"></div>
-  </div>
+  </section>
 
   <div id="tanks"></div>
-
-  <div class="card actions">
-    <button type="button" id="clear">Clear soundings</button>
-  </div>
-
-  <div class="card total">
-    <span>Total</span>
-    <span class="vol" id="total">—</span>
-  </div>
 </main>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="total"><span class="label">Total</span><b id="total">—</b><span>m³</span></div>
+    <button type="button" id="clear">Clear</button>
+    <button type="button" id="share">Share</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
 
 <script>
 // Sounding tables: [cm, Tr -0.5, Tr 0, Tr +0.5] — values from the source file
@@ -144,54 +177,63 @@ const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); }
 
 // --- UI ---
 const $ = id => document.getElementById(id);
-const trimInput = $('trim');
-trimInput.value = state.trim;
+const trimInput = $('trim'), slider = $('trimSlider');
+const fmtTrim = n => (n > 0 ? '+' : '') + fmt(n);
+let last = [];   // last results, for sharing
 
 $('tanks').innerHTML = TANKS.map(t => `
-  <div class="card" data-tank="${t.id}">
-    <div class="tank-head">
-      <span class="tank-name"><span class="tank-no">${t.id}</span>${t.name}</span>
-    </div>
-    <div class="row">
-      <input inputmode="decimal" autocomplete="off" placeholder="Sounding" data-cm="${t.id}" value="${state.cm[t.id] ?? ''}">
+  <section class="card tank" data-tank="${t.id}">
+    <div class="tank-name"><span class="tank-no">${t.id}</span>${t.name}</div>
+    <div class="vol empty" data-vol="${t.id}"><b>—</b><span>m³</span></div>
+    <div class="sound">
+      <input inputmode="decimal" enterkeyhint="next" autocomplete="off" placeholder="Sounding"
+        aria-label="Sounding of tank ${t.id} in cm" data-cm="${t.id}" value="${state.cm[t.id] ?? ''}">
       <span class="unit">cm</span>
-      <span class="vol empty" data-vol="${t.id}">—</span>
     </div>
+    <div class="gauge" aria-hidden="true"><i data-fill="${t.id}" style="height:0"></i><em data-pct="${t.id}"></em></div>
     <div class="warn" data-warn="${t.id}"></div>
-    <button type="button" class="detail-btn" data-toggle="${t.id}">Calculation details ▾</button>
-    <div class="detail" data-detail="${t.id}"></div>
-  </div>`).join('');
+    <button type="button" class="more" data-toggle="${t.id}" aria-expanded="false">Calculation details ▾</button>
+    <div class="detail" data-detail="${t.id}" hidden></div>
+  </section>`).join('');
+
+const q = (attr, id) => document.querySelector(`[data-${attr}="${id}"]`);
 
 function render() {
   const trimRaw = parseNum(trimInput.value);
   const trim = trimRaw ?? 0;
+  if (document.activeElement !== slider) slider.value = clamp(trim, -TRIM_MAX, TRIM_MAX);
   $('trimWarn').textContent = trimRaw !== null && Math.abs(trimRaw) > TRIM_MAX
-    ? `Outside table: calculated at ${fmt(clamp(trimRaw, -TRIM_MAX, TRIM_MAX), 1)} m` : '';
+    ? `Outside table: calculated at ${fmtTrim(clamp(trimRaw, -TRIM_MAX, TRIM_MAX))} m` : '';
 
-  let total = 0, count = 0;
+  let total = 0;
+  last = [];
   for (const tank of TANKS) {
-    const cm = parseNum(document.querySelector(`[data-cm="${tank.id}"]`).value);
-    const volEl = document.querySelector(`[data-vol="${tank.id}"]`);
-    const warnEl = document.querySelector(`[data-warn="${tank.id}"]`);
-    const detEl = document.querySelector(`[data-detail="${tank.id}"]`);
+    const cm = parseNum(q('cm', tank.id).value);
+    const volEl = q('vol', tank.id);
     let r = null;
     if (cm === null) {
-      volEl.textContent = '—'; volEl.classList.add('empty'); warnEl.textContent = '';
+      volEl.querySelector('b').textContent = '—'; volEl.classList.add('empty');
+      q('fill', tank.id).style.height = '0'; q('pct', tank.id).textContent = '';
+      q('warn', tank.id).textContent = '';
     } else {
       r = volume(tank, cm, trim);
-      total += r.v; count++;
-      volEl.textContent = fmt(r.v) + ' m³'; volEl.classList.remove('empty');
-      warnEl.textContent = cm < 0 || cm > r.maxCm ? `Outside table: calculated at ${r.h} cm` : '';
+      const pct = Math.round(100 * r.v / volume(tank, r.maxCm, trim).v);
+      total += r.v;
+      last.push({ tank, cm, v: r.v });
+      volEl.querySelector('b').textContent = fmt(r.v); volEl.classList.remove('empty');
+      q('fill', tank.id).style.height = pct + '%'; q('pct', tank.id).textContent = pct + '%';
+      q('warn', tank.id).textContent = cm < 0 || cm > r.maxCm ? `Outside table: calculated at ${r.h} cm` : '';
     }
-    detEl.innerHTML = detail(tank, r);
+    q('tank', tank.id).classList.toggle('filled', !!r);
+    if (!q('detail', tank.id).hidden) q('detail', tank.id).innerHTML = detail(tank, r);
   }
-  $('total').textContent = count ? fmt(total) + ' m³' : '—';
+  $('total').textContent = last.length ? fmt(total) : '—';
 }
 
 function detail(tank, r) {
   let html = '';
   if (r) {
-    html += `<p>Trim ${fmt(r.t)} m → row ${r.lo[0]} cm : <b>${fmt(r.vLo, 3)}</b>, row ${r.hi[0]} cm : <b>${fmt(r.vHi, 3)}</b></p>`;
+    html += `<p>Trim ${fmtTrim(r.t)} m → row ${r.lo[0]} cm: <b>${fmt(r.vLo, 3)}</b>, row ${r.hi[0]} cm: <b>${fmt(r.vHi, 3)}</b></p>`;
     html += `<p>Sounding ${fmt(r.h, 1)} cm → ${fmt(r.vLo, 3)} + (${fmt(r.vHi, 3)} − ${fmt(r.vLo, 3)}) × ${fmt(r.f, 3)} = <b>${fmt(r.v, 3)} m³</b></p>`;
   }
   html += '<table><tr><th>cm</th><th>Tr −0.5</th><th>Tr 0</th><th>Tr +0.5</th></tr>';
@@ -202,27 +244,94 @@ function detail(tank, r) {
   return html + '</table>';
 }
 
+function setTrim(v) {
+  trimInput.value = v === '' ? '' : fmt(Math.round(v * 100) / 100);
+  state.trim = trimInput.value; save(); render();
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// trim: typing, ±0.05 steps (hold to repeat), slider
 trimInput.addEventListener('input', () => { state.trim = trimInput.value; save(); render(); });
-$('trimSign').addEventListener('click', () => {
-  const v = trimInput.value.trim();
-  trimInput.value = v.startsWith('-') ? v.slice(1) : '-' + v;
-  state.trim = trimInput.value; save(); render();
+for (const [id, d] of [['trimDown', -0.05], ['trimUp', 0.05]]) {
+  const b = $(id);
+  let timer;
+  const step = () => setTrim(clamp((parseNum(trimInput.value) ?? 0) + d, -TRIM_MAX, TRIM_MAX));
+  const stop = () => clearInterval(timer);
+  b.addEventListener('pointerdown', e => { e.preventDefault(); step(); stop(); timer = setInterval(step, 180); });
+  b.addEventListener('pointerup', stop); b.addEventListener('pointerleave', stop); b.addEventListener('pointercancel', stop);
+}
+slider.addEventListener('input', () => setTrim(Number(slider.value)));
+
+// soundings: Enter jumps to the next field, focus selects the value for quick retyping
+const fields = [trimInput, ...document.querySelectorAll('[data-cm]')];
+fields.forEach((inp, i) => {
+  inp.addEventListener('focus', () => setTimeout(() => inp.select(), 0));
+  inp.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (fields[i + 1]) fields[i + 1].focus(); else inp.blur();
+  });
 });
-document.querySelectorAll('[data-trim]').forEach(b => b.addEventListener('click', () => {
-  trimInput.value = b.dataset.trim;
-  state.trim = trimInput.value; save(); render();
-}));
 document.querySelectorAll('[data-cm]').forEach(inp => inp.addEventListener('input', () => {
   state.cm[inp.dataset.cm] = inp.value; save(); render();
 }));
+fields[fields.length - 1].setAttribute('enterkeyhint', 'done');
+
 document.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => {
-  const d = document.querySelector(`[data-detail="${b.dataset.toggle}"]`);
-  d.classList.toggle('open');
-  b.textContent = d.classList.contains('open') ? 'Hide details ▴' : 'Calculation details ▾';
+  const d = q('detail', b.dataset.toggle);
+  d.hidden = !d.hidden;
+  b.setAttribute('aria-expanded', !d.hidden);
+  b.textContent = d.hidden ? 'Calculation details ▾' : 'Hide details ▴';
+  render();
 }));
+
+// clear: second tap within 3 s confirms
+let clearTimer;
 $('clear').addEventListener('click', () => {
+  const b = $('clear');
+  if (!b.classList.contains('armed')) {
+    b.classList.add('armed'); b.textContent = 'Confirm?';
+    clearTimer = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Clear'; }, 3000);
+    return;
+  }
+  clearTimeout(clearTimer);
+  b.classList.remove('armed'); b.textContent = 'Clear';
   document.querySelectorAll('[data-cm]').forEach(inp => inp.value = '');
   state.cm = {}; save(); render();
+  toast('Soundings cleared');
+});
+
+// share the readings as text (share sheet, otherwise clipboard)
+$('share').addEventListener('click', async () => {
+  if (!last.length) { toast('Enter at least one sounding'); return; }
+  const d = new Date(), pad = n => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const trim = clamp(parseNum(trimInput.value) ?? 0, -TRIM_MAX, TRIM_MAX);
+  const lines = [`Tank soundings — ${stamp}`, `Trim: ${fmtTrim(trim)} m`, ''];
+  let total = 0;
+  for (const { tank, cm, v } of last) {
+    lines.push(`${tank.id} ${tank.name}: ${cm} cm → ${fmt(v)} m³`);
+    total += v;
+  }
+  lines.push('', `Total: ${fmt(total)} m³`);
+  const text = lines.join('\n');
+  try {
+    const native = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
+    if (native) { await native.share({ title: 'Tank soundings', text }); return; }
+    if (navigator.share) { await navigator.share({ text }); return; }
+    await navigator.clipboard.writeText(text);
+    toast('Copied to clipboard');
+  } catch (e) {
+    if (e && (e.name === 'AbortError' || /cancel/i.test(e.message || ''))) return;
+    try { await navigator.clipboard.writeText(text); toast('Copied to clipboard'); }
+    catch (e2) { toast('Sharing unavailable'); }
+  }
 });
 
 render();
