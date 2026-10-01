@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1b26">
+<title>Jaugeage réservoirs</title>
+<style>
+  :root {
+    --bg: #0d1b26; --card: #15283a; --card2: #1c3449; --line: #2a4660;
+    --text: #e8f1f8; --muted: #8fa9bf; --accent: #3fb6ff; --ok: #4fd18b; --warn: #ffb547;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { padding: calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 24px); }
+  main { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 1.25rem; margin: 4px 0 14px; }
+  h1 small { display: block; font-size: .8rem; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  input { flex: 1; min-width: 0; font-size: 1.4rem; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--card2); color: var(--text); outline: none; }
+  input:focus { border-color: var(--accent); }
+  button { font: inherit; border: 1px solid var(--line); background: var(--card2); color: var(--text);
+    border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+  button:active { transform: scale(.97); }
+  .sign { font-size: 1.3rem; width: 52px; padding: 10px 0; }
+  .unit { color: var(--muted); width: 28px; }
+  .trim-presets { display: flex; gap: 6px; margin-top: 8px; }
+  .trim-presets button { flex: 1; padding: 6px 0; font-size: .85rem; color: var(--muted); }
+  .tank-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .tank-name { font-weight: 600; }
+  .tank-no { color: var(--accent); margin-right: 6px; }
+  .vol { font-size: 1.6rem; font-weight: 700; color: var(--ok); text-align: right; min-width: 110px; white-space: nowrap; }
+  .vol.empty { color: var(--muted); font-weight: 400; font-size: 1.1rem; }
+  .warn { color: var(--warn); font-size: .8rem; margin-top: 6px; }
+  .detail-btn { background: none; border: none; color: var(--accent); padding: 8px 0 0; font-size: .85rem; }
+  .detail { display: none; margin-top: 8px; font-size: .85rem; color: var(--muted); }
+  .detail.open { display: block; }
+  .detail p { margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 4px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; }
+  tr.hit td { background: rgba(63,182,255,.15); color: var(--text); }
+  .total { position: sticky; bottom: calc(env(safe-area-inset-bottom) + 8px); background: var(--card2);
+    border-color: var(--accent); display: flex; justify-content: space-between; align-items: center; }
+  .total .vol { color: var(--accent); }
+  .actions { display: flex; gap: 8px; }
+  .actions button { flex: 1; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Jaugeage réservoirs<small>Volume net (m³) selon sonde et assiette</small></h1>
+
+  <div class="card">
+    <label for="trim">Assiette (trim), en m — de −0,5 à +0,5</label>
+    <div class="row">
+      <button class="sign" id="trimSign" type="button">±</button>
+      <input id="trim" inputmode="decimal" autocomplete="off" placeholder="0">
+      <span class="unit">m</span>
+    </div>
+    <div class="trim-presets">
+      <button type="button" data-trim="-0.5">−0,5</button>
+      <button type="button" data-trim="-0.25">−0,25</button>
+      <button type="button" data-trim="0">0</button>
+      <button type="button" data-trim="0.25">+0,25</button>
+      <button type="button" data-trim="0.5">+0,5</button>
+    </div>
+    <div class="warn" id="trimWarn"></div>
+  </div>
+
+  <div id="tanks"></div>
+
+  <div class="card actions">
+    <button type="button" id="clear">Effacer les sondes</button>
+  </div>
+
+  <div class="card total">
+    <span>Total</span>
+    <span class="vol" id="total">—</span>
+  </div>
+</main>
+
+<script>
+// Tables de jaugeage : [cm, Tr -0,5, Tr 0, Tr +0,5] — valeurs du fichier source
+const TANKS = [
+  { id: 80, name: 'Dirty Bilge', rows: [
+    [0, 0.18, 0.19, 0.21], [10, 0.82, 0.83, 0.84], [20, 1.45, 1.47, 1.48], [30, 2.09, 2.11, 2.12],
+    [40, 2.73, 2.74, 2.76], [50, 3.37, 3.38, 3.40], [60, 4.01, 4.02, 4.04], [70, 4.65, 4.66, 4.67],
+    [80, 5.28, 5.30, 5.31], [90, 5.92, 5.94, 5.95], [97, 6.36, 6.38, 6.38]] },
+  { id: 50, name: 'Oily Bilge', rows: [
+    [0, 0.81, 0.64, 0.47], [10, 2.93, 2.77, 2.60], [20, 5.06, 4.89, 4.72], [30, 7.19, 7.02, 6.85],
+    [40, 9.31, 9.15, 8.98], [50, 11.44, 11.27, 11.10], [60, 13.57, 13.40, 13.23], [70, 15.70, 15.53, 15.36],
+    [80, 17.82, 17.65, 17.48], [90, 19.95, 19.78, 19.61], [97, 21.25, 21.27, 21.08]] },
+  { id: 24, name: 'Sludge PS', rows: [
+    [0, 0.33, 0.29, 0.25], [10, 1.29, 1.25, 1.21], [20, 2.25, 2.21, 2.17], [30, 3.21, 3.17, 3.13],
+    [40, 4.17, 4.13, 4.09], [50, 5.14, 5.09, 5.05], [60, 6.10, 6.06, 6.02], [70, 7.06, 7.02, 6.98],
+    [80, 8.02, 7.98, 7.94], [90, 8.98, 8.94, 8.90], [97, 9.61, 9.61, 9.57]] },
+  { id: 94, name: 'Sludge SB', rows: [
+    [0, 0.30, 0.31, 0.34], [10, 2.24, 2.21, 2.18], [20, 4.34, 4.31, 4.28], [30, 6.43, 6.41, 6.38],
+    [40, 8.53, 8.51, 8.48], [50, 10.63, 10.61, 10.58], [60, 12.73, 12.70, 12.68], [70, 14.83, 14.80, 14.78],
+    [80, 16.93, 16.90, 16.88], [90, 19.03, 19.00, 18.97], [97, 20.42, 20.47, 20.39]] },
+];
+const TRIM_MAX = 0.5;
+
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, f) => a + (b - a) * f;
+const parseNum = s => {
+  s = String(s).trim().replace(',', '.').replace('−', '-');
+  if (s === '' || s === '-' || s === '.') return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+};
+const fmt = (n, d = 2) => n.toFixed(d).replace('.', ',');
+
+// 1) interpolation sur le trim : colonnes -0,5 / 0 / +0,5
+function trimValue(row, trim) {
+  const [, m, z, p] = row;
+  return trim <= 0 ? lerp(z, m, -trim / TRIM_MAX) : lerp(z, p, trim / TRIM_MAX);
+}
+
+// 2) interpolation sur la hauteur de sonde entre les deux lignes encadrantes
+function volume(tank, cm, trim) {
+  const rows = tank.rows;
+  const maxCm = rows[rows.length - 1][0];
+  const h = clamp(cm, 0, maxCm);
+  const t = clamp(trim, -TRIM_MAX, TRIM_MAX);
+  let i = 0;
+  while (i < rows.length - 2 && h > rows[i + 1][0]) i++;
+  const lo = rows[i], hi = rows[i + 1];
+  const vLo = trimValue(lo, t), vHi = trimValue(hi, t);
+  const f = (h - lo[0]) / (hi[0] - lo[0]);
+  return { v: lerp(vLo, vHi, f), lo, hi, vLo, vHi, f, h, t, maxCm };
+}
+
+// --- état mémorisé ---
+const STORE = 'jaugeage-v1';
+let state = { trim: '', cm: {} };
+try { state = Object.assign(state, JSON.parse(localStorage.getItem(STORE)) || {}); } catch (e) {}
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
+
+// --- interface ---
+const $ = id => document.getElementById(id);
+const trimInput = $('trim');
+trimInput.value = state.trim;
+
+$('tanks').innerHTML = TANKS.map(t => `
+  <div class="card" data-tank="${t.id}">
+    <div class="tank-head">
+      <span class="tank-name"><span class="tank-no">${t.id}</span>${t.name}</span>
+    </div>
+    <div class="row">
+      <input inputmode="decimal" autocomplete="off" placeholder="Sonde" data-cm="${t.id}" value="${state.cm[t.id] ?? ''}">
+      <span class="unit">cm</span>
+      <span class="vol empty" data-vol="${t.id}">—</span>
+    </div>
+    <div class="warn" data-warn="${t.id}"></div>
+    <button type="button" class="detail-btn" data-toggle="${t.id}">Détail du calcul ▾</button>
+    <div class="detail" data-detail="${t.id}"></div>
+  </div>`).join('');
+
+function render() {
+  const trimRaw = parseNum(trimInput.value);
+  const trim = trimRaw ?? 0;
+  $('trimWarn').textContent = trimRaw !== null && Math.abs(trimRaw) > TRIM_MAX
+    ? `Hors table : calcul fait à ${fmt(clamp(trimRaw, -TRIM_MAX, TRIM_MAX), 1)} m` : '';
+
+  let total = 0, count = 0;
+  for (const tank of TANKS) {
+    const cm = parseNum(document.querySelector(`[data-cm="${tank.id}"]`).value);
+    const volEl = document.querySelector(`[data-vol="${tank.id}"]`);
+    const warnEl = document.querySelector(`[data-warn="${tank.id}"]`);
+    const detEl = document.querySelector(`[data-detail="${tank.id}"]`);
+    let r = null;
+    if (cm === null) {
+      volEl.textContent = '—'; volEl.classList.add('empty'); warnEl.textContent = '';
+    } else {
+      r = volume(tank, cm, trim);
+      total += r.v; count++;
+      volEl.textContent = fmt(r.v) + ' m³'; volEl.classList.remove('empty');
+      warnEl.textContent = cm < 0 || cm > r.maxCm ? `Hors table : calcul fait à ${r.h} cm` : '';
+    }
+    detEl.innerHTML = detail(tank, r);
+  }
+  $('total').textContent = count ? fmt(total) + ' m³' : '—';
+}
+
+function detail(tank, r) {
+  let html = '';
+  if (r) {
+    html += `<p>Trim ${fmt(r.t)} m → ligne ${r.lo[0]} cm : <b>${fmt(r.vLo, 3)}</b>, ligne ${r.hi[0]} cm : <b>${fmt(r.vHi, 3)}</b></p>`;
+    html += `<p>Sonde ${fmt(r.h, 1)} cm → ${fmt(r.vLo, 3)} + (${fmt(r.vHi, 3)} − ${fmt(r.vLo, 3)}) × ${fmt(r.f, 3)} = <b>${fmt(r.v, 3)} m³</b></p>`;
+  }
+  html += '<table><tr><th>cm</th><th>Tr −0,5</th><th>Tr 0</th><th>Tr +0,5</th></tr>';
+  for (const row of tank.rows) {
+    const hit = r && (row === r.lo || row === r.hi);
+    html += `<tr class="${hit ? 'hit' : ''}"><td>${row[0]}</td><td>${fmt(row[1])}</td><td>${fmt(row[2])}</td><td>${fmt(row[3])}</td></tr>`;
+  }
+  return html + '</table>';
+}
+
+trimInput.addEventListener('input', () => { state.trim = trimInput.value; save(); render(); });
+$('trimSign').addEventListener('click', () => {
+  const v = trimInput.value.trim();
+  trimInput.value = v.startsWith('-') ? v.slice(1) : '-' + v;
+  state.trim = trimInput.value; save(); render();
+});
+document.querySelectorAll('[data-trim]').forEach(b => b.addEventListener('click', () => {
+  trimInput.value = b.dataset.trim.replace('.', ',');
+  state.trim = trimInput.value; save(); render();
+}));
+document.querySelectorAll('[data-cm]').forEach(inp => inp.addEventListener('input', () => {
+  state.cm[inp.dataset.cm] = inp.value; save(); render();
+}));
+document.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => {
+  const d = document.querySelector(`[data-detail="${b.dataset.toggle}"]`);
+  d.classList.toggle('open');
+  b.textContent = d.classList.contains('open') ? 'Masquer le détail ▴' : 'Détail du calcul ▾';
+}));
+$('clear').addEventListener('click', () => {
+  document.querySelectorAll('[data-cm]').forEach(inp => inp.value = '');
+  state.cm = {}; save(); render();
+});
+
+render();
+</script>
+</body>
+</html>

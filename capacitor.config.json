@@ -1,0 +1,13 @@
+{
+  "appId": "fr.jaugeage.reservoirs",
+  "appName": "Jaugeage",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#0d1b26"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css"
+    }
+  }
+}

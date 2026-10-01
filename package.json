@@ -1,0 +1,14 @@
+{
+  "name": "jaugeage-reservoirs",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Calcul du volume net des réservoirs (tables de jaugeage, interpolation trim puis sonde). APK compilé par .github/workflows/android.yml.",
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/core": "8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.2"
+  }
+}
