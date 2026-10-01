@@ -5,6 +5,7 @@
   "description": "Engine48 : outil de l'officier mécanicien (jaugeage des réservoirs, inventaire des items). APK compilé par .github/workflows/android.yml.",
   "dependencies": {
     "@capacitor/android": "8.5.2",
+    "@capacitor/browser": "^8.0.0",
     "@capacitor/core": "8.5.2",
     "@capacitor/share": "^8.0.0"
   },

@@ -25,7 +25,12 @@
   input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(63,182,255,.25); }
   .primary { background: var(--accent); border-color: var(--accent); color: #062033; font-weight: 600; }
 
-  header { margin: 2px 2px 12px; }
+  header { margin: 2px 2px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .upd-btn { height: 40px; padding: 0 12px; font-size: .85rem; color: var(--muted); border-radius: 20px; white-space: nowrap; }
+  .upd-banner { border-color: var(--accent); background: rgba(63,182,255,.1); display: flex; gap: 10px; align-items: center; }
+  .upd-banner div { flex: 1; font-size: .9rem; }
+  .upd-banner small { display: block; color: var(--muted); margin-top: 2px; white-space: pre-wrap; }
+  .upd-banner button { height: 46px; padding: 0 14px; flex: none; }
   h1 { font-size: 1.2rem; margin: 0; }
   h1 b { color: var(--accent); }
   h1 small { display: block; font-size: .75rem; font-weight: 400; color: var(--muted); margin-top: 2px; }
@@ -116,7 +121,12 @@
 <main>
   <header>
     <h1>Engine<b>48</b><small id="subtitle">Tank sounding — net volume (m³)</small></h1>
+    <button type="button" class="upd-btn" id="updBtn" aria-label="Check for updates">⟳ v0</button>
   </header>
+  <section class="card upd-banner" id="updBanner" hidden>
+    <div><b id="updTitle"></b><small id="updNotes"></small></div>
+    <button type="button" class="primary" id="updGet">Download</button>
+  </section>
 
   <!-- Sounding -->
   <div id="viewSounding">
@@ -499,6 +509,54 @@ $('itemExport').addEventListener('click', () => {
 render();
 renderItems();
 showView(load('engine48-view', 'Sounding') === 'Items' ? 'Items' : 'Sounding');
+
+// ================= Updates =================
+// APP_BUILD is set by the build workflow (0 = development copy); releases are tagged v<build>
+const APP_BUILD = 0;
+const REPO = 'Brice117/Engine48';
+let updUrl = null;
+$('updBtn').textContent = APP_BUILD ? `⟳ v${APP_BUILD}` : '⟳ dev';
+
+async function checkUpdate(manual) {
+  const btn = $('updBtn'), label = btn.textContent;
+  if (manual) btn.textContent = 'Checking…';
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`,
+      { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    if (r.status === 404) { if (manual) toast('No published version yet'); return; }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rel = await r.json();
+    const latest = parseInt(String(rel.tag_name).replace(/\D/g, ''), 10) || 0;
+    const asset = (rel.assets || []).find(a => /\.apk$/i.test(a.name));
+    if (latest > APP_BUILD && asset) {
+      updUrl = asset.browser_download_url;
+      $('updTitle').textContent = `New version v${latest} available`;
+      $('updNotes').textContent = (rel.body || '').split('\n')[0].slice(0, 120);
+      $('updBanner').hidden = false;
+    } else if (manual) {
+      toast(`Engine48 is up to date (v${latest})`);
+    }
+  } catch (e) {
+    if (manual) toast('No connection — try again later');
+  } finally {
+    btn.textContent = label;
+  }
+}
+
+// the APK opens in the browser, which downloads it; Android then offers to install it
+$('updGet').addEventListener('click', async () => {
+  if (!updUrl) return;
+  const browser = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+  try {
+    if (browser) await browser.open({ url: updUrl });
+    else window.open(updUrl, '_blank');
+    toast('Download started — open it to install');
+  } catch (e) {
+    window.location.href = updUrl;
+  }
+});
+$('updBtn').addEventListener('click', () => checkUpdate(true));
+if (navigator.onLine !== false) checkUpdate(false);
 </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
-# Compile l'APK Android (Capacitor) à partir de www/index.html.
+# Compile l'APK Android (Capacitor) à partir de www/index.html et le publie en Release GitHub.
 # À chaque push sur main, ou manuellement (onglet Actions > Run workflow).
-# L'APK est téléchargeable dans l'onglet Actions (artefact « Engine48-apk »).
+# Numéro de version = numéro d'exécution du workflow : l'application compare le sien à la dernière Release
+# (bouton « Check for updates ») et télécharge l'APK publié (Releases > latest > Engine48.apk).
 name: Application Android
 
 on:
@@ -8,9 +9,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      BUILD: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,42 +36,42 @@ jobs:
       - name: Dépendances
         run: npm install --no-audit --no-fund
 
+      - name: Numéro de version
+        run: |
+          sed -i "s/const APP_BUILD = 0;/const APP_BUILD = $BUILD;/" www/index.html
+          grep -q "const APP_BUILD = $BUILD;" www/index.html
+
       - name: Projet Android
         run: |
           npx cap add android
+          sed -i -E "s/versionCode [0-9]+/versionCode $BUILD/; s/versionName \"[^\"]*\"/versionName \"1.$BUILD\"/" android/app/build.gradle
+          grep -q "versionCode $BUILD" android/app/build.gradle
           npx capacitor-assets generate --android \
             --iconBackgroundColor '#0d1b26' --iconBackgroundColorDark '#0d1b26' \
             --splashBackgroundColor '#0d1b26' --splashBackgroundColorDark '#0d1b26'
           npx cap sync android
 
       # Clé fixe (secret ANDROID_KEYSTORE_B64) : même signature à chaque version, donc mise à jour
-      # possible sans désinstaller. Au premier passage (secret absent), une clé est créée et publiée en artefact.
+      # sans désinstaller. Le dépôt est public : la clé n'est jamais publiée en artefact.
       - name: Clé de signature
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
         run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "::error::Secret ANDROID_KEYSTORE_B64 manquant"; exit 1; fi
           mkdir -p ~/.android
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
-          else
-            keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android -keypass android \
-              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Engine48"
-            cp ~/.android/debug.keystore "$GITHUB_WORKSPACE/new-keystore.jks"
-          fi
-
-      - name: Nouvelle clé (à enregistrer dans les secrets)
-        if: hashFiles('new-keystore.jks') != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: nouvelle-cle
-          path: new-keystore.jks
-          retention-days: 1
+          echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
 
       - name: Compilation
         run: cd android && ./gradlew assembleDebug --no-daemon
 
-      - name: APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Engine48-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ github.event.head_commit.message }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk Engine48.apk
+          gh release create "v$BUILD" Engine48.apk --title "Engine48 v$BUILD" \
+            --notes "${NOTES:-Manual build}" --latest
+          # garde les 5 dernières versions
+          gh release list --limit 100 --json tagName,createdAt -q 'sort_by(.createdAt) | reverse | .[5:][] | .tagName' \
+            | xargs -r -n1 gh release delete --cleanup-tag -y
