@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d1b26">
-<title>Jaugeage réservoirs</title>
+<title>Tank Sounding</title>
 <style>
   :root {
     --bg: #0d1b26; --card: #15283a; --card2: #1c3449; --line: #2a4660;
@@ -53,21 +53,21 @@
 </head>
 <body>
 <main>
-  <h1>Jaugeage réservoirs<small>Volume net (m³) selon sonde et assiette</small></h1>
+  <h1>Tank Sounding<small>Net volume (m³) from sounding and trim</small></h1>
 
   <div class="card">
-    <label for="trim">Assiette (trim), en m — de −0,5 à +0,5</label>
+    <label for="trim">Trim (m), from −0.5 to +0.5</label>
     <div class="row">
       <button class="sign" id="trimSign" type="button">±</button>
       <input id="trim" inputmode="decimal" autocomplete="off" placeholder="0">
       <span class="unit">m</span>
     </div>
     <div class="trim-presets">
-      <button type="button" data-trim="-0.5">−0,5</button>
-      <button type="button" data-trim="-0.25">−0,25</button>
+      <button type="button" data-trim="-0.5">−0.5</button>
+      <button type="button" data-trim="-0.25">−0.25</button>
       <button type="button" data-trim="0">0</button>
-      <button type="button" data-trim="0.25">+0,25</button>
-      <button type="button" data-trim="0.5">+0,5</button>
+      <button type="button" data-trim="0.25">+0.25</button>
+      <button type="button" data-trim="0.5">+0.5</button>
     </div>
     <div class="warn" id="trimWarn"></div>
   </div>
@@ -75,7 +75,7 @@
   <div id="tanks"></div>
 
   <div class="card actions">
-    <button type="button" id="clear">Effacer les sondes</button>
+    <button type="button" id="clear">Clear soundings</button>
   </div>
 
   <div class="card total">
@@ -85,7 +85,7 @@
 </main>
 
 <script>
-// Tables de jaugeage : [cm, Tr -0,5, Tr 0, Tr +0,5] — valeurs du fichier source
+// Sounding tables: [cm, Tr -0.5, Tr 0, Tr +0.5] — values from the source file
 const TANKS = [
   { id: 80, name: 'Dirty Bilge', rows: [
     [0, 0.18, 0.19, 0.21], [10, 0.82, 0.83, 0.84], [20, 1.45, 1.47, 1.48], [30, 2.09, 2.11, 2.12],
@@ -114,15 +114,15 @@ const parseNum = s => {
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 };
-const fmt = (n, d = 2) => n.toFixed(d).replace('.', ',');
+const fmt = (n, d = 2) => n.toFixed(d);
 
-// 1) interpolation sur le trim : colonnes -0,5 / 0 / +0,5
+// 1) interpolate on trim: columns -0.5 / 0 / +0.5
 function trimValue(row, trim) {
   const [, m, z, p] = row;
   return trim <= 0 ? lerp(z, m, -trim / TRIM_MAX) : lerp(z, p, trim / TRIM_MAX);
 }
 
-// 2) interpolation sur la hauteur de sonde entre les deux lignes encadrantes
+// 2) interpolate on sounding between the two bracketing rows
 function volume(tank, cm, trim) {
   const rows = tank.rows;
   const maxCm = rows[rows.length - 1][0];
@@ -136,13 +136,13 @@ function volume(tank, cm, trim) {
   return { v: lerp(vLo, vHi, f), lo, hi, vLo, vHi, f, h, t, maxCm };
 }
 
-// --- état mémorisé ---
+// --- saved state ---
 const STORE = 'jaugeage-v1';
 let state = { trim: '', cm: {} };
 try { state = Object.assign(state, JSON.parse(localStorage.getItem(STORE)) || {}); } catch (e) {}
 const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
 
-// --- interface ---
+// --- UI ---
 const $ = id => document.getElementById(id);
 const trimInput = $('trim');
 trimInput.value = state.trim;
@@ -153,12 +153,12 @@ $('tanks').innerHTML = TANKS.map(t => `
       <span class="tank-name"><span class="tank-no">${t.id}</span>${t.name}</span>
     </div>
     <div class="row">
-      <input inputmode="decimal" autocomplete="off" placeholder="Sonde" data-cm="${t.id}" value="${state.cm[t.id] ?? ''}">
+      <input inputmode="decimal" autocomplete="off" placeholder="Sounding" data-cm="${t.id}" value="${state.cm[t.id] ?? ''}">
       <span class="unit">cm</span>
       <span class="vol empty" data-vol="${t.id}">—</span>
     </div>
     <div class="warn" data-warn="${t.id}"></div>
-    <button type="button" class="detail-btn" data-toggle="${t.id}">Détail du calcul ▾</button>
+    <button type="button" class="detail-btn" data-toggle="${t.id}">Calculation details ▾</button>
     <div class="detail" data-detail="${t.id}"></div>
   </div>`).join('');
 
@@ -166,7 +166,7 @@ function render() {
   const trimRaw = parseNum(trimInput.value);
   const trim = trimRaw ?? 0;
   $('trimWarn').textContent = trimRaw !== null && Math.abs(trimRaw) > TRIM_MAX
-    ? `Hors table : calcul fait à ${fmt(clamp(trimRaw, -TRIM_MAX, TRIM_MAX), 1)} m` : '';
+    ? `Outside table: calculated at ${fmt(clamp(trimRaw, -TRIM_MAX, TRIM_MAX), 1)} m` : '';
 
   let total = 0, count = 0;
   for (const tank of TANKS) {
@@ -181,7 +181,7 @@ function render() {
       r = volume(tank, cm, trim);
       total += r.v; count++;
       volEl.textContent = fmt(r.v) + ' m³'; volEl.classList.remove('empty');
-      warnEl.textContent = cm < 0 || cm > r.maxCm ? `Hors table : calcul fait à ${r.h} cm` : '';
+      warnEl.textContent = cm < 0 || cm > r.maxCm ? `Outside table: calculated at ${r.h} cm` : '';
     }
     detEl.innerHTML = detail(tank, r);
   }
@@ -191,10 +191,10 @@ function render() {
 function detail(tank, r) {
   let html = '';
   if (r) {
-    html += `<p>Trim ${fmt(r.t)} m → ligne ${r.lo[0]} cm : <b>${fmt(r.vLo, 3)}</b>, ligne ${r.hi[0]} cm : <b>${fmt(r.vHi, 3)}</b></p>`;
-    html += `<p>Sonde ${fmt(r.h, 1)} cm → ${fmt(r.vLo, 3)} + (${fmt(r.vHi, 3)} − ${fmt(r.vLo, 3)}) × ${fmt(r.f, 3)} = <b>${fmt(r.v, 3)} m³</b></p>`;
+    html += `<p>Trim ${fmt(r.t)} m → row ${r.lo[0]} cm : <b>${fmt(r.vLo, 3)}</b>, row ${r.hi[0]} cm : <b>${fmt(r.vHi, 3)}</b></p>`;
+    html += `<p>Sounding ${fmt(r.h, 1)} cm → ${fmt(r.vLo, 3)} + (${fmt(r.vHi, 3)} − ${fmt(r.vLo, 3)}) × ${fmt(r.f, 3)} = <b>${fmt(r.v, 3)} m³</b></p>`;
   }
-  html += '<table><tr><th>cm</th><th>Tr −0,5</th><th>Tr 0</th><th>Tr +0,5</th></tr>';
+  html += '<table><tr><th>cm</th><th>Tr −0.5</th><th>Tr 0</th><th>Tr +0.5</th></tr>';
   for (const row of tank.rows) {
     const hit = r && (row === r.lo || row === r.hi);
     html += `<tr class="${hit ? 'hit' : ''}"><td>${row[0]}</td><td>${fmt(row[1])}</td><td>${fmt(row[2])}</td><td>${fmt(row[3])}</td></tr>`;
@@ -209,7 +209,7 @@ $('trimSign').addEventListener('click', () => {
   state.trim = trimInput.value; save(); render();
 });
 document.querySelectorAll('[data-trim]').forEach(b => b.addEventListener('click', () => {
-  trimInput.value = b.dataset.trim.replace('.', ',');
+  trimInput.value = b.dataset.trim;
   state.trim = trimInput.value; save(); render();
 }));
 document.querySelectorAll('[data-cm]').forEach(inp => inp.addEventListener('input', () => {
@@ -218,7 +218,7 @@ document.querySelectorAll('[data-cm]').forEach(inp => inp.addEventListener('inpu
 document.querySelectorAll('[data-toggle]').forEach(b => b.addEventListener('click', () => {
   const d = document.querySelector(`[data-detail="${b.dataset.toggle}"]`);
   d.classList.toggle('open');
-  b.textContent = d.classList.contains('open') ? 'Masquer le détail ▴' : 'Détail du calcul ▾';
+  b.textContent = d.classList.contains('open') ? 'Hide details ▴' : 'Calculation details ▾';
 }));
 $('clear').addEventListener('click', () => {
   document.querySelectorAll('[data-cm]').forEach(inp => inp.value = '');
