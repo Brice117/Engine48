@@ -1,8 +1,8 @@
 {
-  "name": "jaugeage-reservoirs",
+  "name": "engine48",
   "private": true,
   "version": "1.0.0",
-  "description": "Calcul du volume net des réservoirs (tables de jaugeage, interpolation trim puis sonde). APK compilé par .github/workflows/android.yml.",
+  "description": "Engine48 : outil de l'officier mécanicien (jaugeage des réservoirs, inventaire des items). APK compilé par .github/workflows/android.yml.",
   "dependencies": {
     "@capacitor/android": "8.5.2",
     "@capacitor/core": "8.5.2",
